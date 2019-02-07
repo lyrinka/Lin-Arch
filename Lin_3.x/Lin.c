@@ -1,4 +1,4 @@
-// Lin Architecture version 3.0.1+ 
+// Lin Architecture version 3.1.2 for lyrinka OS 
 /* The Lin Architecture Framework. 
 	Major changes in stack data structures 
 	providing a smart and flexiable interface 
@@ -10,7 +10,16 @@
 	
 	Release notes: 
 	
-	<3.0.1+> 181115	Debugged and fully commented. 
+	<3.1.2 > 190127 Changed TCB Data Structure for Event Managements. 
+									Added Event Control Block Data Structure. 
+									DataStructure optimized for Operating System using Lin. 
+									Updated StkInit for new data structures. New Tasks are created Dead (i.e. NULLS on all surrounding pointers) 
+									Initializations of chained lists are included for Lint is an addon of Lin. 
+									But OS related control information is not initialized. These are thrown directly to the operating system. 
+	<3.1.1 > 181225 Added support in data structure for priority queue and waiting list chained lists. 
+									Added macros for entering/exiting critical regions. 
+									Code not changed. 
+	<3.0.2 > 181115	Debugged and fully commented. 
 	<3.0.1 > 181113	Using Message Pool & Carrier design 
 									Using Single-chained Lists for Message Carriers. 
 	<3.0.0 > 181112	Copies of last version 2.1.2 
@@ -166,7 +175,7 @@ __asm void Lin_Return(int retval){
 void Lin_Delete(TASK Task){ 
 	Lin_CritEnter(); 
 	while(Task->MsgQty) Lin_MsgGet(Task); 
-	Lin_MemFree(Task->SL); 
+	Lin_MemFree(Task->ECB); 
 	Lin_CritExit(); 
 }
 // End of a section. 
@@ -334,6 +343,10 @@ static __asm TASK Lin_StkInit(u8 * Memory, u32 Size, void * funcPtr){
 		SUB		R3,  #64 
 		STR		R0, [R3, #60] // SL 
 		MOV		R0,  #0 
+		STR		R0, [R3, #44] // RBN 
+		STR		R0, [R3, #40] // LBN 
+		STR		R0, [R3, #36] // Next 
+		STR		R0, [R3, #32] // Prev 
 		STR		R0, [R3, #28] // MsgTail 
 		STR		R0, [R3, #24] // MsgHead
 		STR		R0, [R3, #20] // MsgQty 

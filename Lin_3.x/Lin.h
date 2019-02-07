@@ -1,4 +1,4 @@
-// Lin Architecture header file verion 3.0.1+ 
+// Lin Architecture header file verion 3.1.2 for lyrinka OS 
 #ifndef __Lin_H__ 
 #define __Lin_H__ 
 
@@ -16,15 +16,15 @@
 	DataStructure of the Stack: 
 		... 				<- High Address 
 		StkLim 	-60 						: Stack Bottom 
-		res6 		-56 						: reserved. 
-		res5 		-52 						: reserved. 
-		res4 		-48 						: reserved. 
-		res3 		-44 						: reserved. 
-		res2 		-40 						: reserved. 
-		res1 		-36 						: reserved. 
-		res0 		-32 						: reserved. 
-		MsgTail -28 						: Tail fo Queue 
-		MsgHead -24 						: Head of Queue 
+		Priority-56 						: Priority. 
+		<many> 	-52 						: TimeSlice related registers. 
+		<many> 	-48 						: Event related registers. 
+		RBN 		-44 						: Pointer RBrN. 
+		LBN 		-40 						: Pointer LBrN. 
+		Next 		-36 						: Pointer Next. 
+		Prev 		-32 						: Pointer Prev. 
+		MsgTail -28 						: Tail fo Message Queue 
+		MsgHead -24 						: Head of Message Queue 
 		MsgQty 	-20 						: Messages waiting in Queue 
 		Counter -16 						: Counter, Initialief as 0xFFFFFFFF 
 		Arg1 		-12 						: Argument 1 
@@ -74,6 +74,11 @@
 // Macros 
 #define NULL 			((void *)0) 
 
+#define __critical_alloc() int __IE 
+#define __critical_enter() int __IE = __get_PRIMASK(), __disable_irq() 
+#define __critical_reenter() __IE = __get_PRIMASK(), __disable_irq() 
+#define __critical_exit() __set_PRIMASK(__IE) 
+
 // Types 
 // Inter-Task Message Type - MSG 
 typedef struct Lin_Msg{ 
@@ -88,6 +93,15 @@ typedef struct Lin_MsgBlk{
 	Lin_Msg Msg; 
 }Lin_MsgBlk; 
 
+// Event Control Block - For Operating System 
+typedef struct Lin_ECB{ 
+	int TimeBase_Mode; 
+	u32 TimeBase_Stamp; 
+	void * WkupRef; 	// On what Event did it wake up? 
+	int EvListSize; 
+	void * EvList[]; 
+}Lin_ECB; 
+
 // Task Control Block Type - TASK 
 typedef struct Lin_TCB{ 
 	u8 * SP; 
@@ -98,8 +112,19 @@ typedef struct Lin_TCB{
 	int MsgQty; // MsgN 
 	Lin_MsgBlk * MsgHead; // MsgF 
 	Lin_MsgBlk * MsgTail; // MsgL 
-	u32 res[7]; 
-	u8 * SL; 
+
+	struct Lin_TCB * Prev; 
+	struct Lin_TCB * Next; 
+	struct Lin_TCB * LBN; 
+	struct Lin_TCB * RBN; 
+	s8 	WkupSrc; 		// Source of Waking up: EventRef or GenericEvent or TimeBase? 
+	u8 	WkupMeth; 	// Method of Waking up: Is it woke up from previously fired event? 
+	s8 	GenEvFlag; 	// The flag of GenericEvent. A type I Event for waking the process up. 
+	u8 	GenEvInfo; 	// 8-bit data for simple IPC using GE. 
+	s16 TimeSliceCounter; 
+	s16 TimeSliceReload; 
+	int Priority; 
+	Lin_ECB * ECB; 
 }Lin_TCB, * TASK; 
 
 
